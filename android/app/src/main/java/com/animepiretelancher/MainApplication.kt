@@ -4,6 +4,9 @@ import android.app.Application
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
+import com.facebook.react.ReactPackage
+import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.uimanager.ViewManager
 import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 
@@ -14,8 +17,7 @@ class MainApplication : Application(), ReactApplication {
       context = applicationContext,
       packageList =
         PackageList(this).packages.apply {
-          // Packages that cannot be autolinked yet can be added manually here, for example:
-          // add(MyReactNativePackage())
+          add(AppPackage()) 
         },
     )
   }
@@ -24,4 +26,13 @@ class MainApplication : Application(), ReactApplication {
     super.onCreate()
     loadReactNative(this)
   }
+}
+
+
+class AppPackage : ReactPackage {
+    override fun createNativeModules(reactContext: ReactApplicationContext)
+        = listOf(AppModule(reactContext))
+
+    override fun createViewManagers(reactContext: ReactApplicationContext)
+        = emptyList<ViewManager<*, *>>()
 }
