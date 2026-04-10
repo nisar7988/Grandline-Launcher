@@ -6,7 +6,7 @@ import {
   NativeModules,
   BackHandler,
 } from 'react-native';
-import { getApps } from '../services/appService';
+import { getApps, setWallpaper } from '../services/appService';
 import AppIcon from '../components/AppIconComponent';
 import { PanResponder, Dimensions } from 'react-native';
 import AppDrawer from './AppDrawer';
@@ -29,6 +29,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     loadApps();
+    setWallpaper();
   }, []);
 
   useEffect(() => {

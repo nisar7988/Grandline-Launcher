@@ -12,7 +12,7 @@ export const openApp = (pkg: any) => {
 
 export const setWallpaper = async () => {
   try {
-    await NativeModules.AppModule.setLockWallpaper('wallpaper'); // image name
+    await AppModule.setLockWallpaper('wallpaper'); // image name
   } catch (e) {
     console.log(e);
   }
