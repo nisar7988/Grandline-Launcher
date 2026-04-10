@@ -148,5 +148,35 @@ class AppModule(reactContext: ReactApplicationContext) :
             reactApplicationContext.startActivity(it)
         }
     }
+
+    @ReactMethod
+fun setLockWallpaper(imageName: String, promise: Promise) {
+    try {
+        val context = reactApplicationContext
+        val wallpaperManager = android.app.WallpaperManager.getInstance(context)
+
+        val resId = context.resources.getIdentifier(
+            imageName,
+            "drawable",
+            context.packageName
+        )
+
+        val bitmap = android.graphics.BitmapFactory.decodeResource(
+            context.resources,
+            resId
+        )
+
+        wallpaperManager.setBitmap(
+            bitmap,
+            null,
+            true,
+            android.app.WallpaperManager.FLAG_LOCK // 🔥 LOCK SCREEN
+        )
+
+        promise.resolve("Wallpaper set successfully")
+    } catch (e: Exception) {
+        promise.reject("ERROR", e.message)
+    }
+}
     
 }

@@ -63,7 +63,9 @@ export default function AppDrawer({
   };
 
   return (
-    <Animated.View style={[styles.container, { paddingTop: insets.top }, animatedStyle]}>
+    <Animated.View
+      style={[styles.container, { paddingTop: insets.top }, animatedStyle]}
+    >
       {/* Background overlay to close the drawer */}
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={StyleSheet.absoluteFill} />
@@ -110,7 +112,7 @@ const styles = StyleSheet.create({
   },
   searchBarInput: {
     height: 48,
-    backgroundColor: 'rgba(155, 153, 153, 0.2)',
+    backgroundColor: 'rgba(95, 91, 91, 0.64)',
     borderRadius: 14,
     paddingHorizontal: 15,
     color: 'white',
@@ -120,7 +122,7 @@ const styles = StyleSheet.create({
   },
   drawerContent: {
     flex: 1,
-    backgroundColor: 'rgba(77, 71, 71, 0.46)',
+    backgroundColor: 'rgba(77, 71, 71, 0.83)',
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     paddingTop: 10,

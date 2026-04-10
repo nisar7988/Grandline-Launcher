@@ -9,3 +9,11 @@ export const getApps = async () => {
 export const openApp = (pkg: any) => {
   AppModule.openApp(pkg);
 };
+
+export const setWallpaper = async () => {
+  try {
+    await NativeModules.AppModule.setLockWallpaper('wallpaper'); // image name
+  } catch (e) {
+    console.log(e);
+  }
+};
