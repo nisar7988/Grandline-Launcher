@@ -6,6 +6,7 @@ import {
   NativeModules,
   BackHandler,
   Alert,
+  Keyboard,
 } from 'react-native';
 import { getApps, setWallpaper, openApp } from '../services/appService';
 import AppIcon from '../components/AppIconComponent';
@@ -124,6 +125,7 @@ export default function HomeScreen() {
           if (!showDrawer && gesture.dy < 0) {
             translateY.value = Math.max(0, SCREEN_HEIGHT + gesture.dy);
           } else if (showDrawer && gesture.dy > 0) {
+            Keyboard.dismiss();
             translateY.value = Math.max(0, gesture.dy);
           }
         },

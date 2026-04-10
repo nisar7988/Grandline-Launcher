@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   View,
   FlatList,
@@ -7,6 +7,8 @@ import {
   TouchableWithoutFeedback,
   TextInput,
   Text,
+  Keyboard,
+  BackHandler,
 } from 'react-native';
 import AppIcon from '../components/AppIconComponent';
 import Animated, {
@@ -40,6 +42,16 @@ export default function AppDrawer({
 }: AppDrawerProps) {
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
+  const inputRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    const keyboardHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      inputRef.current?.blur();
+      setIsFocused(false);
+    });
+    return () => keyboardHideListener.remove();
+  }, []);
 
   const filteredApps = useMemo(() => {
     if (!searchQuery) return apps;
@@ -51,8 +63,32 @@ export default function AppDrawer({
   useEffect(() => {
     if (!showDrawer) {
       setSearchQuery('');
+      inputRef.current?.blur();
+      Keyboard.dismiss();
     }
   }, [showDrawer]);
+
+  useEffect(() => {
+    if (!showDrawer) return;
+
+    const backAction = () => {
+      if (searchQuery !== '' || isFocused) {
+        setSearchQuery('');
+        inputRef.current?.blur();
+        Keyboard.dismiss();
+        setIsFocused(false);
+        return true;
+      }
+      return false;
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction,
+    );
+
+    return () => backHandler.remove();
+  }, [showDrawer, searchQuery]);
 
   const animatedStyle = useAnimatedStyle(() => {
     'worklet';
@@ -94,11 +130,14 @@ export default function AppDrawer({
         )}
         <View style={styles.searchBar}>
           <TextInput
+            ref={inputRef}
             placeholder="Search apps"
             placeholderTextColor="rgba(255, 255, 255, 0.6)"
             style={styles.searchBarInput}
             value={searchQuery}
             onChangeText={setSearchQuery}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
             clearButtonMode="while-editing"
           />
         </View>
@@ -113,6 +152,7 @@ export default function AppDrawer({
             />
           )}
           onScroll={handleScroll}
+          onScrollBeginDrag={() => Keyboard.dismiss()}
           scrollEventThrottle={16}
           contentContainerStyle={{
             paddingBottom: insets.bottom + 20,
