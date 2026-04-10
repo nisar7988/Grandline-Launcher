@@ -16,6 +16,7 @@ import { useSharedValue, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../constant/colors';
 import TopHeader from '../components/TopHeader';
+import RNBootSplash from 'react-native-bootsplash';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -89,6 +90,9 @@ export default function HomeScreen() {
 
     const installedApps = await getApps();
     setAllApps(installedApps);
+
+    // Hide splash screen once initial apps are loaded
+    RNBootSplash.hide({ fade: true });
   };
 
   return (
