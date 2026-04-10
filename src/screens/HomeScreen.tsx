@@ -5,6 +5,7 @@ import {
   StyleSheet,
   NativeModules,
   BackHandler,
+  Alert,
 } from 'react-native';
 import { getApps, setWallpaper } from '../services/appService';
 import AppIcon from '../components/AppIconComponent';
@@ -30,7 +31,29 @@ export default function HomeScreen() {
   useEffect(() => {
     loadApps();
     setWallpaper();
+    checkDefaultLauncher();
   }, []);
+
+  const checkDefaultLauncher = async () => {
+    try {
+      const isDefault = await NativeModules.AppModule.isDefaultLauncher();
+      if (!isDefault) {
+        Alert.alert(
+          'Set Default Launcher',
+          'To use GrandLine Launcher properly, please set it as your default home app.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'Set as Default', 
+              onPress: () => NativeModules.AppModule.requestDefaultLauncher() 
+            },
+          ],
+        );
+      }
+    } catch (e) {
+      console.error('Failed to check default launcher:', e);
+    }
+  };
 
   useEffect(() => {
     // Sync state changes to animation (programmatic open/close)

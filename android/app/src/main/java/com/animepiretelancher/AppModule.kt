@@ -17,6 +17,8 @@ import android.content.Context
 import android.os.Build
 import android.content.IntentFilter
 import android.os.BatteryManager
+import android.app.role.RoleManager
+import android.provider.Settings
 
 class AppModule(reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
@@ -193,33 +195,84 @@ class AppModule(reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
-fun setLockWallpaper(imageName: String, promise: Promise) {
-    try {
-        val context = reactApplicationContext
-        val wallpaperManager = android.app.WallpaperManager.getInstance(context)
+    fun setLockWallpaper(imageName: String, promise: Promise) {
+        try {
+            val context = reactApplicationContext
+            val wallpaperManager = android.app.WallpaperManager.getInstance(context)
 
-        val resId = context.resources.getIdentifier(
-            imageName,
-            "drawable",
-            context.packageName
-        )
+            val resId = context.resources.getIdentifier(
+                imageName,
+                "drawable",
+                context.packageName
+            )
 
-        val bitmap = android.graphics.BitmapFactory.decodeResource(
-            context.resources,
-            resId
-        )
+            val bitmap = android.graphics.BitmapFactory.decodeResource(
+                context.resources,
+                resId
+            )
 
-        wallpaperManager.setBitmap(
-            bitmap,
-            null,
-            true,
-            android.app.WallpaperManager.FLAG_LOCK // 🔥 LOCK SCREEN
-        )
+            wallpaperManager.setBitmap(
+                bitmap,
+                null,
+                true,
+                android.app.WallpaperManager.FLAG_LOCK // 🔥 LOCK SCREEN
+            )
 
-        promise.resolve("Wallpaper set successfully")
-    } catch (e: Exception) {
-        promise.reject("ERROR", e.message)
+            promise.resolve("Wallpaper set successfully")
+        } catch (e: Exception) {
+            promise.reject("ERROR", e.message)
+        }
     }
-}
-    
+
+    @ReactMethod
+    fun isDefaultLauncher(promise: Promise) {
+        try {
+            val intent = Intent(Intent.ACTION_MAIN)
+            intent.addCategory(Intent.CATEGORY_HOME)
+            val pm = reactApplicationContext.packageManager
+            val resolveInfo = pm.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
+            val currentDefaultPackage = resolveInfo?.activityInfo?.packageName
+            promise.resolve(currentDefaultPackage == reactApplicationContext.packageName)
+        } catch (e: Exception) {
+            promise.reject("ERROR", e.message)
+        }
+    }
+
+    @ReactMethod
+    fun requestDefaultLauncher(promise: Promise) {
+        try {
+            val context = reactApplicationContext
+            val activity = getCurrentActivity()
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val roleManager = context.getSystemService(Context.ROLE_SERVICE) as RoleManager
+                if (roleManager.isRoleAvailable(RoleManager.ROLE_HOME)) {
+                    val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_HOME)
+                    activity?.startActivityForResult(intent, 999) ?: run {
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        context.startActivity(intent)
+                    }
+                    promise.resolve(true)
+                    return
+                }
+            }
+
+            // Fallback for older versions or if RoleManager is not available
+            val intent = Intent(Settings.ACTION_HOME_SETTINGS)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            try {
+                context.startActivity(intent)
+                promise.resolve(true)
+            } catch (e: Exception) {
+                // Last resort: simple home intent
+                val homeIntent = Intent(Intent.ACTION_MAIN)
+                homeIntent.addCategory(Intent.CATEGORY_HOME)
+                homeIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(homeIntent)
+                promise.resolve(true)
+            }
+        } catch (e: Exception) {
+            promise.reject("ERROR", e.message)
+        }
+    }
 }
