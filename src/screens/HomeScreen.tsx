@@ -5,6 +5,8 @@ import {
   ImageBackground,
   StyleSheet,
   NativeModules,
+  Image,
+  Text,
 } from 'react-native';
 import { getApps } from '../services/appService';
 import AppIcon from '../components/AppIconComponent';
@@ -12,6 +14,8 @@ import { PanResponder, Dimensions } from 'react-native';
 import AppDrawer from './AppDrawer';
 import { useSharedValue, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { COLORS } from '../constant/colors';
+import TopHeader from '../components/TopHeader';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -94,6 +98,7 @@ export default function HomeScreen() {
         style={styles.container}
         {...panResponder.panHandlers}
       >
+        <TopHeader />
         <View
           style={{
             flexDirection: 'row',

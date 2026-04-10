@@ -15,6 +15,8 @@ import android.provider.Telephony
 import android.telecom.TelecomManager
 import android.content.Context
 import android.os.Build
+import android.content.IntentFilter
+import android.os.BatteryManager
 
 class AppModule(reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
