@@ -21,6 +21,7 @@ export default function AppIcon({ app }: { app: any }) {
             position: 'absolute',
             bottom: 14,
             width: '100%',
+            paddingHorizontal: 6, // ← Added: prevents text from touching edges
           }}
         >
           <Image
@@ -32,7 +33,16 @@ export default function AppIcon({ app }: { app: any }) {
               marginBottom: 10,
             }}
           />
-          <Text style={{ fontWeight: 800, textAlign: 'center', fontSize: 10 }}>
+          <Text
+            style={{
+              fontWeight: 800,
+              textAlign: 'center',
+              fontSize: 10,
+              width: '100%', // ← Added: forces text to respect container width
+            }}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
             {app.name}
           </Text>
         </View>
