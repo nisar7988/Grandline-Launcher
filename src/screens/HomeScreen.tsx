@@ -1,36 +1,34 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   View,
-  FlatList,
   ImageBackground,
   StyleSheet,
   NativeModules,
-  Image,
-  Text,
+  BackHandler,
 } from 'react-native';
-import { getApps, setWallpaper } from '../services/appService';
+import { getApps } from '../services/appService';
 import AppIcon from '../components/AppIconComponent';
 import { PanResponder, Dimensions } from 'react-native';
 import AppDrawer from './AppDrawer';
 import { useSharedValue, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS } from '../constant/colors';
 import TopHeader from '../components/TopHeader';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import RNBootSplash from 'react-native-bootsplash';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const [apps, setApps] = useState([]);
-  const [allApps, setAllApps] = useState([]);
+  const [apps, setApps] = useState<any[]>([]);
+  const [allApps, setAllApps] = useState<any[]>([]);
   const [showDrawer, setShowDrawer] = useState(false);
   const [isDrawerAtTop, setIsDrawerAtTop] = useState(true);
+  const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const translateY = useSharedValue(SCREEN_HEIGHT);
 
   useEffect(() => {
     loadApps();
-    setWallpaper();
   }, []);
 
   useEffect(() => {
@@ -44,7 +42,30 @@ export default function HomeScreen() {
     if (showDrawer) {
       setIsDrawerAtTop(true); // Reset when opening
     }
+  }, [showDrawer, translateY]);
+
+  useEffect(() => {
+    const backAction = () => {
+      if (showDrawer) {
+        handleClose();
+        return true;
+      }
+      // On home screen, back button should do nothing to avoid navigation loops
+      return true;
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction,
+    );
+
+    return () => backHandler.remove();
   }, [showDrawer]);
+
+  const handleClose = () => {
+    setShowDrawer(false);
+    setSelectedSlot(null);
+  };
 
   const panResponder = useMemo(
     () =>
@@ -71,7 +92,7 @@ export default function HomeScreen() {
           if (!showDrawer && shouldOpen) {
             setShowDrawer(true);
           } else if (showDrawer && shouldClose) {
-            setShowDrawer(false);
+            handleClose();
           } else {
             // Snap back
             translateY.value = withSpring(showDrawer ? 0 : SCREEN_HEIGHT, {
@@ -82,18 +103,44 @@ export default function HomeScreen() {
           }
         },
       }),
-    [showDrawer, translateY, isDrawerAtTop],
+    [showDrawer, translateY, isDrawerAtTop, handleClose],
   );
 
   const loadApps = async () => {
-    const defaultApps = await NativeModules.AppModule.getDefaultApps();
-    setApps(defaultApps);
+    // 1. Try to load saved dock apps first
+    const saved = await AsyncStorage.getItem('dock_apps');
+    if (saved) {
+      setApps(JSON.parse(saved));
+    } else {
+      // Fallback to default apps if nothing saved
+      const defaultApps = await NativeModules.AppModule.getDefaultApps();
+      setApps(defaultApps);
+      // Save them initially so they stick
+      await AsyncStorage.setItem('dock_apps', JSON.stringify(defaultApps));
+    }
 
     const installedApps = await getApps();
     setAllApps(installedApps);
 
     // Hide splash screen once initial apps are loaded
     RNBootSplash.hide({ fade: true });
+  };
+
+  const handleReplace = (index: number) => {
+    setSelectedSlot(index);
+    setShowDrawer(true);
+  };
+
+  const handleSelectApp = async (newApp: any) => {
+    if (selectedSlot === null) return;
+
+    const updated = [...apps];
+    updated[selectedSlot] = newApp;
+
+    setApps(updated);
+    await AsyncStorage.setItem('dock_apps', JSON.stringify(updated));
+
+    handleClose();
   };
 
   return (
@@ -113,8 +160,13 @@ export default function HomeScreen() {
             width: '100%',
           }}
         >
-          {apps.map((app: any) => (
-            <AppIcon key={app.package} app={app} />
+          {apps.map((app: any, index: number) => (
+            <AppIcon
+              key={`${app.package}-${index}`}
+              app={app}
+              onLongPress={() => handleReplace(index)}
+              isEditing={selectedSlot === index}
+            />
           ))}
         </View>
       </ImageBackground>
@@ -123,9 +175,11 @@ export default function HomeScreen() {
         apps={allApps}
         showDrawer={showDrawer}
         translateY={translateY}
-        onClose={() => setShowDrawer(false)}
+        onClose={handleClose}
         setIsAtTop={setIsDrawerAtTop}
         panHandlers={panResponder.panHandlers}
+        onSelectApp={handleSelectApp}
+        title={selectedSlot !== null ? `Select Replacement for ${apps[selectedSlot]?.name}` : undefined}
       />
     </View>
   );

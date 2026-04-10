@@ -6,6 +6,7 @@ import {
   Dimensions,
   TouchableWithoutFeedback,
   TextInput,
+  Text,
 } from 'react-native';
 import AppIcon from '../components/AppIconComponent';
 import Animated, {
@@ -23,6 +24,8 @@ interface AppDrawerProps {
   onClose: () => void;
   setIsAtTop: (atTop: boolean) => void;
   panHandlers: any;
+  onSelectApp?: (app: any) => void;
+  title?: string;
 }
 
 export default function AppDrawer({
@@ -32,6 +35,8 @@ export default function AppDrawer({
   onClose,
   setIsAtTop,
   panHandlers,
+  onSelectApp,
+  title,
 }: AppDrawerProps) {
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
@@ -73,6 +78,20 @@ export default function AppDrawer({
 
       <View style={styles.drawerContent} {...panHandlers}>
         <View style={styles.handle} />
+        {title && (
+          <Text
+            style={{
+              color: 'white',
+              fontSize: 20,
+              fontWeight: 'bold',
+              textAlign: 'center',
+              marginBottom: 10,
+              fontFamily: 'Roboto', // Or any custom font if available
+            }}
+          >
+            {title}
+          </Text>
+        )}
         <View style={styles.searchBar}>
           <TextInput
             placeholder="Search apps"
@@ -87,7 +106,12 @@ export default function AppDrawer({
           data={filteredApps}
           numColumns={4}
           keyExtractor={item => item.package}
-          renderItem={({ item }) => <AppIcon app={item} />}
+          renderItem={({ item }) => (
+            <AppIcon
+              app={item}
+              onPress={() => onSelectApp && onSelectApp(item)}
+            />
+          )}
           onScroll={handleScroll}
           scrollEventThrottle={16}
           contentContainerStyle={{

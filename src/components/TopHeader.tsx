@@ -48,7 +48,6 @@ export default function TopHeader() {
         {/* Top Text Row */}
         <View style={styles.energyTopRow}>
           <Text style={styles.energyTitle}>HAKI / ENERGY</Text>
-          <Text style={styles.energyValue}>{batteryPercentage}%</Text>
         </View>
 
         {/* The Hexagon Bar */}
@@ -68,6 +67,30 @@ export default function TopHeader() {
                 end={{ x: 1, y: 0.5 }}
                 style={{ flex: 1 }}
               />
+            </View>
+
+            {/* Percentage Text Inside Bar */}
+            <View style={StyleSheet.absoluteFill}>
+              <View
+                style={{
+                  flex: 1,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
+                <Text
+                  style={{
+                    color: 'white',
+                    fontSize: 10,
+                    fontWeight: '900',
+                    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+                    textShadowOffset: { width: 0, height: 1 },
+                    textShadowRadius: 2,
+                  }}
+                >
+                  {batteryPercentage}%
+                </Text>
+              </View>
             </View>
           </View>
 
@@ -129,8 +152,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
-    paddingHorizontal: 2,
-    marginBottom: 1,
+    paddingHorizontal: 10,
+    marginBottom: 2,
   },
   energyTitle: {
     fontSize: 12,
@@ -139,9 +162,9 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   energyValue: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#1a1d1e',
+    fontSize: 14, // Larger percentage
+    fontWeight: '900',
+    color: '#222', // Darker for clarity
   },
   energyBarWrapper: {
     width: '100%',

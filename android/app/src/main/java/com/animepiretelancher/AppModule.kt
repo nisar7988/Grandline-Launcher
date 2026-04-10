@@ -93,9 +93,24 @@ class AppModule(reactContext: ReactApplicationContext) :
         val pm = reactApplicationContext.packageManager
         val result = Arguments.createArray()
 
+        fun resolveBestApp(intent: Intent): String? {
+            val activities = pm.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
+            if (activities.isEmpty()) return null
+            
+            // Try to find first that isn't from 'android' or system package
+            val best = activities.find { 
+                val pkg = it.activityInfo.packageName
+                !pkg.equals("android", ignoreCase = true) && 
+                !pkg.startsWith("com.android.internal", ignoreCase = true) &&
+                !pkg.startsWith("com.android.providers", ignoreCase = true) &&
+                !pkg.contains("resolver", ignoreCase = true)
+            } ?: activities.firstOrNull()
+            
+            return best?.activityInfo?.packageName
+        }
+
         fun resolveAndAdd(intent: Intent) {
-            val resolveInfo = pm.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
-            resolveInfo?.activityInfo?.packageName?.let { pkg ->
+            resolveBestApp(intent)?.let { pkg ->
                 getAppData(pkg)?.let { result.pushMap(it) }
             }
         }
@@ -126,13 +141,41 @@ class AppModule(reactContext: ReactApplicationContext) :
         resolveAndAdd(Intent(MediaStore.ACTION_IMAGE_CAPTURE))
 
         // 🖼️ Gallery / Photos
-        val galleryIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_GALLERY)
-        val galleryResolve = pm.resolveActivity(galleryIntent, PackageManager.MATCH_DEFAULT_ONLY)
-        if (galleryResolve != null) {
-            resolveAndAdd(galleryIntent)
+        val galleryIntents = listOf(
+            Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_GALLERY),
+            Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_GALLERY),
+            Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+        )
+
+        var galleryPkg: String? = null
+        for (gi in galleryIntents) {
+            val pkg = resolveBestApp(gi)
+            if (pkg != null && !pkg.equals("android", ignoreCase = true)) {
+                galleryPkg = pkg
+                break
+            }
+        }
+        
+        if (galleryPkg == null) {
+            // Last resort fallback
+            galleryPkg = resolveBestApp(Intent(Intent.ACTION_VIEW).apply { type = "image/*" })
+        }
+
+        if (galleryPkg != null) {
+            getAppData(galleryPkg)?.let { result.pushMap(it) }
         } else {
-            // Fallback for gallery if category doesn't work
-            resolveAndAdd(Intent(Intent.ACTION_VIEW).apply { type = "image/*" })
+            // Hard fallback for common package names if all intent logic fails
+            val commonGalleryPkgs = listOf("com.oneplus.gallery", "com.google.android.apps.photos", "com.sec.android.gallery3d", "com.miui.gallery")
+            for (pkg in commonGalleryPkgs) {
+                try {
+                    pm.getPackageInfo(pkg, 0)
+                    getAppData(pkg)?.let { 
+                        result.pushMap(it)
+                        galleryPkg = pkg
+                    }
+                    if (galleryPkg != null) break
+                } catch (e: Exception) {}
+            }
         }
 
         promise.resolve(result)
