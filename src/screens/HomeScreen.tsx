@@ -11,10 +11,12 @@ import AppIcon from '../components/AppIconComponent';
 import { PanResponder, Dimensions } from 'react-native';
 import AppDrawer from './AppDrawer';
 import { useSharedValue, withSpring } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
   const [apps, setApps] = useState([]);
   const [allApps, setAllApps] = useState([]);
   const [showDrawer, setShowDrawer] = useState(false);
@@ -97,7 +99,7 @@ export default function HomeScreen() {
             flexDirection: 'row',
             justifyContent: 'space-between',
             position: 'absolute',
-            bottom: 20,
+            bottom: insets.bottom + 20,
             width: '100%',
           }}
         >
@@ -122,6 +124,5 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 50,
   },
 });

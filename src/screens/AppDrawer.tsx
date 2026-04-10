@@ -12,6 +12,7 @@ import Animated, {
   useAnimatedStyle,
   SharedValue,
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -32,6 +33,7 @@ export default function AppDrawer({
   setIsAtTop,
   panHandlers,
 }: AppDrawerProps) {
+  const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredApps = useMemo(() => {
@@ -61,7 +63,7 @@ export default function AppDrawer({
   };
 
   return (
-    <Animated.View style={[styles.container, animatedStyle]}>
+    <Animated.View style={[styles.container, { paddingTop: insets.top }, animatedStyle]}>
       {/* Background overlay to close the drawer */}
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={StyleSheet.absoluteFill} />
@@ -87,7 +89,7 @@ export default function AppDrawer({
           onScroll={handleScroll}
           scrollEventThrottle={16}
           contentContainerStyle={{
-            paddingBottom: 100,
+            paddingBottom: insets.bottom + 20,
             paddingHorizontal: 10,
           }}
           keyboardShouldPersistTaps="handled"
@@ -100,7 +102,6 @@ export default function AppDrawer({
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFill,
-    paddingTop: 50,
     zIndex: 1000,
   },
   searchBar: {
