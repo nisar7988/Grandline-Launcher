@@ -12,8 +12,8 @@ export const openApp = (pkg: any) => {
 
 export const setWallpaper = async () => {
   try {
-    await AppModule.setLockWallpaper('wallpaper'); // image name
+    return await AppModule.setLockWallpaper('wallpaper'); // image name
   } catch (e) {
-    console.log(e);
+    console.log('Failed to set wallpaper:', e);
   }
 };

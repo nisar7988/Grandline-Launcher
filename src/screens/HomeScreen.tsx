@@ -7,7 +7,7 @@ import {
   BackHandler,
   Alert,
 } from 'react-native';
-import { getApps, setWallpaper } from '../services/appService';
+import { getApps, setWallpaper, openApp } from '../services/appService';
 import AppIcon from '../components/AppIconComponent';
 import { PanResponder, Dimensions } from 'react-native';
 import AppDrawer from './AppDrawer';
@@ -29,9 +29,27 @@ export default function HomeScreen() {
   const translateY = useSharedValue(SCREEN_HEIGHT);
 
   useEffect(() => {
-    loadApps();
-    setWallpaper();
-    checkDefaultLauncher();
+    const init = async () => {
+      // Run tasks independently so one failure doesn't block others
+      try {
+        await loadApps();
+      } catch (e) {
+        console.error('Failed to load apps:', e);
+      }
+
+      try {
+        await setWallpaper();
+      } catch (e) {
+        console.error('Failed to set wallpaper:', e);
+      }
+
+      try {
+        await checkDefaultLauncher();
+      } catch (e) {
+        console.error('Failed to check default launcher:', e);
+      }
+    };
+    init();
   }, []);
 
   const checkDefaultLauncher = async () => {
@@ -156,7 +174,11 @@ export default function HomeScreen() {
   };
 
   const handleSelectApp = async (newApp: any) => {
-    if (selectedSlot === null) return;
+    if (selectedSlot === null) {
+      openApp(newApp.package);
+      handleClose();
+      return;
+    }
 
     const updated = [...apps];
     updated[selectedSlot] = newApp;

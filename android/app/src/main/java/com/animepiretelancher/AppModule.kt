@@ -211,14 +211,17 @@ class AppModule(reactContext: ReactApplicationContext) :
                 resId
             )
 
-            wallpaperManager.setBitmap(
-                bitmap,
-                null,
-                true,
-                android.app.WallpaperManager.FLAG_LOCK // 🔥 LOCK SCREEN
-            )
-
-            promise.resolve("Wallpaper set successfully")
+            if (bitmap != null) {
+                wallpaperManager.setBitmap(
+                    bitmap,
+                    null,
+                    true,
+                    android.app.WallpaperManager.FLAG_LOCK // 🔥 LOCK SCREEN
+                )
+                promise.resolve("Wallpaper set successfully")
+            } else {
+                promise.reject("ERROR", "Failed to decode resource: $imageName (resId: $resId)")
+            }
         } catch (e: Exception) {
             promise.reject("ERROR", e.message)
         }
