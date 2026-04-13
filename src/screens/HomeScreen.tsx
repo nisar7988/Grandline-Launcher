@@ -62,9 +62,9 @@ export default function HomeScreen() {
           'To use GrandLine Launcher properly, please set it as your default home app.',
           [
             { text: 'Cancel', style: 'cancel' },
-            { 
-              text: 'Set as Default', 
-              onPress: () => NativeModules.AppModule.requestDefaultLauncher() 
+            {
+              text: 'Set as Default',
+              onPress: () => NativeModules.AppModule.requestDefaultLauncher(),
             },
           ],
         );
@@ -158,9 +158,10 @@ export default function HomeScreen() {
     } else {
       // Fallback to default apps if nothing saved
       const defaultApps = await NativeModules.AppModule.getDefaultApps();
-      setApps(defaultApps);
+      const sortedDefault = defaultApps.sort((a: any, b: any) => a.name.localeCompare(b.name));
+      setApps(sortedDefault);
       // Save them initially so they stick
-      await AsyncStorage.setItem('dock_apps', JSON.stringify(defaultApps));
+      await AsyncStorage.setItem('dock_apps', JSON.stringify(sortedDefault));
     }
 
     const installedApps = await getApps();
@@ -227,7 +228,11 @@ export default function HomeScreen() {
         setIsAtTop={setIsDrawerAtTop}
         panHandlers={panResponder.panHandlers}
         onSelectApp={handleSelectApp}
-        title={selectedSlot !== null ? `Select Replacement for ${apps[selectedSlot]?.name}` : undefined}
+        title={
+          selectedSlot !== null
+            ? `Select Replacement for ${apps[selectedSlot]?.name}`
+            : undefined
+        }
       />
     </View>
   );

@@ -3,7 +3,8 @@ import { NativeModules } from 'react-native';
 const { AppModule } = NativeModules;
 
 export const getApps = async () => {
-  return await AppModule.getInstalledApps();
+  const apps = await AppModule.getInstalledApps();
+  return apps.sort((a: any, b: any) => a.name.localeCompare(b.name));
 };
 
 export const openApp = (pkg: any) => {
