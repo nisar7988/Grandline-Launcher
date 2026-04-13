@@ -11,6 +11,7 @@ import {
   BackHandler,
 } from 'react-native';
 import AppIcon from '../components/AppIconComponent';
+import ContextMenu from '../components/ContextMenu';
 import Animated, {
   useAnimatedStyle,
   SharedValue,
@@ -43,6 +44,9 @@ export default function AppDrawer({
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
+  const [contextMenuVisible, setContextMenuVisible] = useState(false);
+  const [contextMenuApp, setContextMenuApp] = useState<any>(null);
+  const [contextMenuAnchor, setContextMenuAnchor] = useState<{ x: number, y: number } | null>(null);
   const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
@@ -149,6 +153,12 @@ export default function AppDrawer({
             <AppIcon
               app={item}
               onPress={() => onSelectApp && onSelectApp(item)}
+              onLongPress={(e: any) => {
+                const { pageX, pageY } = e.nativeEvent;
+                setContextMenuAnchor({ x: pageX, y: pageY });
+                setContextMenuApp(item);
+                setContextMenuVisible(true);
+              }}
             />
           )}
           onScroll={handleScroll}
@@ -161,6 +171,12 @@ export default function AppDrawer({
           keyboardShouldPersistTaps="handled"
         />
       </View>
+      <ContextMenu
+        visible={contextMenuVisible}
+        app={contextMenuApp}
+        anchor={contextMenuAnchor}
+        onClose={() => setContextMenuVisible(false)}
+      />
     </Animated.View>
   );
 }

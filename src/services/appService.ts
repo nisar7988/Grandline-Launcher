@@ -11,6 +11,23 @@ export const openApp = (pkg: any) => {
   AppModule.openApp(pkg);
 };
 
+export const openAppInfo = async (pkg: any) => {
+  try {
+    await AppModule.openAppInfo(pkg);
+  } catch (e) {
+    console.log('Failed to open app info:', e);
+  }
+};
+
+export const uninstallApp = async (pkg: any) => {
+  try {
+    await AppModule.uninstallApp(pkg);
+  } catch (e) {
+    console.log('Failed to uninstall app:', e);
+  }
+};
+
+
 export const setWallpaper = async () => {
   try {
     return await AppModule.setLockWallpaper('wallpaper'); // image name

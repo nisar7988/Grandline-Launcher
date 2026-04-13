@@ -7,6 +7,8 @@ import {
   BackHandler,
   Alert,
   Keyboard,
+  AppState,
+  AppStateStatus,
 } from 'react-native';
 import { getApps, setWallpaper, openApp } from '../services/appService';
 import AppIcon from '../components/AppIconComponent';
@@ -51,6 +53,18 @@ export default function HomeScreen() {
       }
     };
     init();
+  }, []);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (nextAppState === 'active') {
+        // Refresh the app list when returning to the launcher
+        getApps().then(installedApps => {
+          setAllApps(installedApps);
+        });
+      }
+    });
+    return () => subscription.remove();
   }, []);
 
   const checkDefaultLauncher = async () => {

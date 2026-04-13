@@ -11,7 +11,7 @@ import { openApp } from '../services/appService';
 
 interface AppIconProps {
   app: any;
-  onLongPress?: () => void;
+  onLongPress?: (event: any) => void;
   onPress?: () => void;
   isEditing?: boolean;
 }
