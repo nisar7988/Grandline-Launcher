@@ -127,6 +127,13 @@ export default function HomeScreen() {
   const panResponder = useMemo(
     () =>
       PanResponder.create({
+        onMoveShouldSetPanResponderCapture: (_, gesture) => {
+          // Steal responder from FlatList when pulling down at the top
+          if (showDrawer) {
+            return isDrawerAtTop && gesture.dy > 10 && Math.abs(gesture.dy) > Math.abs(gesture.dx);
+          }
+          return false;
+        },
         onMoveShouldSetPanResponder: (_, gesture) => {
           if (showDrawer) {
             // Only capture swipe down if the drawer list is at very top

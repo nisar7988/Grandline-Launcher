@@ -164,6 +164,8 @@ export default function AppDrawer({
           onScroll={handleScroll}
           onScrollBeginDrag={() => Keyboard.dismiss()}
           scrollEventThrottle={16}
+          bounces={false}
+          overScrollMode="never"
           contentContainerStyle={{
             paddingBottom: insets.bottom + 20,
             paddingHorizontal: 10,
