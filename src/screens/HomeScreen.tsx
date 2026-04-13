@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   View,
   ImageBackground,
@@ -119,10 +119,10 @@ export default function HomeScreen() {
     return () => backHandler.remove();
   }, [showDrawer]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setShowDrawer(false);
     setSelectedSlot(null);
-  };
+  }, []);
 
   const panResponder = useMemo(
     () =>
@@ -192,12 +192,12 @@ export default function HomeScreen() {
     RNBootSplash.hide({ fade: true });
   };
 
-  const handleReplace = (index: number) => {
+  const handleReplace = useCallback((index: number) => {
     setSelectedSlot(index);
     setShowDrawer(true);
-  };
+  }, []);
 
-  const handleSelectApp = async (newApp: any) => {
+  const handleSelectApp = useCallback(async (newApp: any) => {
     if (selectedSlot === null) {
       openApp(newApp.package);
       handleClose();
@@ -211,7 +211,7 @@ export default function HomeScreen() {
     await AsyncStorage.setItem('dock_apps', JSON.stringify(updated));
 
     handleClose();
-  };
+  }, [apps, selectedSlot, handleClose]);
 
   return (
     <View style={{ flex: 1 }}>

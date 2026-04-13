@@ -16,12 +16,12 @@ interface AppIconProps {
   isEditing?: boolean;
 }
 
-export default function AppIcon({
+const AppIcon = React.memo(({
   app,
   onLongPress,
   onPress,
   isEditing,
-}: AppIconProps) {
+}: AppIconProps) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const wiggleAnim = useRef(new Animated.Value(0)).current;
 
@@ -154,4 +154,6 @@ export default function AppIcon({
       </TouchableOpacity>
     </Animated.View>
   );
-}
+});
+
+export default AppIcon;

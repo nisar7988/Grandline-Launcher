@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   FlatList,
@@ -101,11 +101,28 @@ export default function AppDrawer({
     };
   });
 
-  const handleScroll = (event: any) => {
+  const handleScroll = useCallback((event: any) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     // We consider it "at top" if the user has scrolled to 0 or even slightly overscrolled
     setIsAtTop(offsetY <= 0);
-  };
+  }, [setIsAtTop]);
+
+  const onLongPressIcon = useCallback((e: any, app: any) => {
+    const { pageX, pageY } = e.nativeEvent;
+    setContextMenuAnchor({ x: pageX, y: pageY });
+    setContextMenuApp(app);
+    setContextMenuVisible(true);
+  }, []);
+
+  const renderItem = useCallback(({ item }: { item: any }) => (
+    <AppIcon
+      app={item}
+      onPress={() => onSelectApp && onSelectApp(item)}
+      onLongPress={(e) => onLongPressIcon(e, item)}
+    />
+  ), [onSelectApp, onLongPressIcon]);
+
+  const keyExtractor = useCallback((item: any) => item.package, []);
 
   return (
     <Animated.View
@@ -148,19 +165,8 @@ export default function AppDrawer({
         <FlatList
           data={filteredApps}
           numColumns={4}
-          keyExtractor={item => item.package}
-          renderItem={({ item }) => (
-            <AppIcon
-              app={item}
-              onPress={() => onSelectApp && onSelectApp(item)}
-              onLongPress={(e: any) => {
-                const { pageX, pageY } = e.nativeEvent;
-                setContextMenuAnchor({ x: pageX, y: pageY });
-                setContextMenuApp(item);
-                setContextMenuVisible(true);
-              }}
-            />
-          )}
+          keyExtractor={keyExtractor}
+          renderItem={renderItem}
           onScroll={handleScroll}
           onScrollBeginDrag={() => Keyboard.dismiss()}
           scrollEventThrottle={16}
@@ -171,6 +177,15 @@ export default function AppDrawer({
             paddingHorizontal: 10,
           }}
           keyboardShouldPersistTaps="handled"
+          initialNumToRender={16}
+          maxToRenderPerBatch={12}
+          windowSize={5}
+          removeClippedSubviews={true}
+          getItemLayout={(_, index) => ({
+            length: 120, // Approximate height of AppIcon (110 + padding)
+            offset: 120 * Math.floor(index / 4),
+            index,
+          })}
         />
       </View>
       <ContextMenu
