@@ -110,7 +110,7 @@ export default function AppIcon({
                 width: 40,
                 height: 40,
                 alignSelf: 'center',
-                marginBottom: 10,
+                marginBottom: 7,
               }}
             />
             <Text
@@ -118,7 +118,7 @@ export default function AppIcon({
                 fontWeight: '800',
                 textAlign: 'center',
                 fontSize: 10,
-                width: '100%',
+                width: '70%',
               }}
               numberOfLines={1}
               ellipsizeMode="tail"
