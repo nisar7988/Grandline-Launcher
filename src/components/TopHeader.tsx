@@ -26,7 +26,7 @@ export default function TopHeader() {
       {/* LEFT - Compass */}
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <Image
-          source={require('../assets/images/header.png')}
+          source={require('../assets/images/header.webp')}
           style={styles.compass}
         />
 

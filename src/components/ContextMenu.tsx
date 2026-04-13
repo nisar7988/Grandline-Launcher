@@ -121,7 +121,7 @@ export default function ContextMenu({
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
             <ImageBackground
-              source={require('../assets/images/menu-bg.png')}
+              source={require('../assets/images/menu-bg.webp')}
               style={[
                 {
                   top: menuTop,

@@ -91,7 +91,7 @@ const AppIcon = React.memo(({
         activeOpacity={0.8}
       >
         <ImageBackground
-          source={require('../assets/images/wanted-bg.png')}
+          source={require('../assets/images/wanted-bg.webp')}
           style={{ width: 90, height: 110 }}
         >
           <View

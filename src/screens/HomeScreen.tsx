@@ -216,7 +216,7 @@ export default function HomeScreen() {
   return (
     <View style={{ flex: 1 }}>
       <ImageBackground
-        source={require('../assets/images/bg-image.png')}
+        source={require('../assets/images/bg-image.webp')}
         style={styles.container}
         {...panResponder.panHandlers}
       >
