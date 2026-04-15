@@ -1,55 +1,63 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   ImageBackground,
   StyleSheet,
   NativeModules,
-  BackHandler,
   Alert,
-  Keyboard,
   AppState,
-  AppStateStatus,
+  InteractionManager,
 } from 'react-native';
 import { getApps, setWallpaper, openApp } from '../services/appService';
 import AppIcon from '../components/AppIconComponent';
-import { PanResponder, Dimensions } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import AppDrawer from './AppDrawer';
-import { useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, {
+  useSharedValue,
+  withSpring,
+  useAnimatedStyle,
+  runOnJS,
+  interpolate,
+  Extrapolate,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import TopHeader from '../components/TopHeader';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import RNBootSplash from 'react-native-bootsplash';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+// Optimized spring config for a "snappy" launcher feel
+const SPRING_CONFIG = {
+  damping: 18,
+  stiffness: 120,
+  mass: 0.8,
+};
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const [apps, setApps] = useState<any[]>([]);
   const [allApps, setAllApps] = useState<any[]>([]);
   const [showDrawer, setShowDrawer] = useState(false);
-  const [isDrawerAtTop, setIsDrawerAtTop] = useState(true);
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
-  const translateY = useSharedValue(SCREEN_HEIGHT);
+  const lastAppRefreshTs = React.useRef(0);
+  
+  // Normalized progress: 0 = home, 1 = drawer fully open
+  const progress = useSharedValue(0);
 
   useEffect(() => {
     const init = async () => {
-      // Run tasks independently so one failure doesn't block others
       try {
         await loadApps();
-      } catch (e) {
-        console.error('Failed to load apps:', e);
-      }
 
-      try {
-        await setWallpaper();
+        InteractionManager.runAfterInteractions(() => {
+          setWallpaper().catch(e => {
+            console.error('Failed to set wallpaper:', e);
+          });
+          checkDefaultLauncher().catch(e => {
+            console.error('Failed to check default launcher:', e);
+          });
+        });
       } catch (e) {
-        console.error('Failed to set wallpaper:', e);
-      }
-
-      try {
-        await checkDefaultLauncher();
-      } catch (e) {
-        console.error('Failed to check default launcher:', e);
+        console.error('Initialization failed:', e);
       }
     };
     init();
@@ -58,7 +66,11 @@ export default function HomeScreen() {
   useEffect(() => {
     const subscription = AppState.addEventListener('change', nextAppState => {
       if (nextAppState === 'active') {
-        // Refresh the app list when returning to the launcher
+        const now = Date.now();
+        if (now - lastAppRefreshTs.current < 1500) {
+          return;
+        }
+        lastAppRefreshTs.current = now;
         getApps().then(installedApps => {
           setAllApps(installedApps);
         });
@@ -88,107 +100,62 @@ export default function HomeScreen() {
     }
   };
 
-  useEffect(() => {
-    // Sync state changes to animation (programmatic open/close)
-    translateY.value = withSpring(showDrawer ? 0 : SCREEN_HEIGHT, {
-      damping: 20,
-      stiffness: 90,
-      mass: 0.5,
-    });
-
-    if (showDrawer) {
-      setIsDrawerAtTop(true); // Reset when opening
-    }
-  }, [showDrawer, translateY]);
-
-  useEffect(() => {
-    const backAction = () => {
-      if (showDrawer) {
-        handleClose();
-        return true;
-      }
-      // On home screen, back button should do nothing to avoid navigation loops
-      return true;
-    };
-
-    const backHandler = BackHandler.addEventListener(
-      'hardwareBackPress',
-      backAction,
-    );
-
-    return () => backHandler.remove();
-  }, [showDrawer]);
-
   const handleClose = useCallback(() => {
     setShowDrawer(false);
     setSelectedSlot(null);
   }, []);
 
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onMoveShouldSetPanResponderCapture: (_, gesture) => {
-          // Steal responder from FlatList when pulling down at the top
-          if (showDrawer) {
-            return isDrawerAtTop && gesture.dy > 10 && Math.abs(gesture.dy) > Math.abs(gesture.dx);
-          }
-          return false;
-        },
-        onMoveShouldSetPanResponder: (_, gesture) => {
-          if (showDrawer) {
-            // Only capture swipe down if the drawer list is at very top
-            return isDrawerAtTop && gesture.dy > 10;
-          }
-          // Sensitive enough for swipes up when closed
-          return !showDrawer && gesture.dy < -10;
-        },
-        onPanResponderMove: (_, gesture) => {
-          if (!showDrawer && gesture.dy < 0) {
-            translateY.value = Math.max(0, SCREEN_HEIGHT + gesture.dy);
-          } else if (showDrawer && gesture.dy > 0) {
-            Keyboard.dismiss();
-            translateY.value = Math.max(0, gesture.dy);
-          }
-        },
-        onPanResponderRelease: (_, gesture) => {
-          const shouldOpen = gesture.dy < -100 || gesture.vy < -0.5;
-          const shouldClose = gesture.dy > 100 || gesture.vy > 0.5;
+  // Sync state to animation
+  useEffect(() => {
+    progress.value = withSpring(showDrawer ? 1 : 0, SPRING_CONFIG);
+  }, [showDrawer, progress]);
 
-          if (!showDrawer && shouldOpen) {
-            setShowDrawer(true);
-          } else if (showDrawer && shouldClose) {
-            handleClose();
-          } else {
-            // Snap back
-            translateY.value = withSpring(showDrawer ? 0 : SCREEN_HEIGHT, {
-              velocity: gesture.vy,
-              damping: 20,
-              stiffness: 90,
-            });
-          }
-        },
-      }),
-    [showDrawer, translateY, isDrawerAtTop, handleClose],
-  );
+  const panGesture = Gesture.Pan()
+    .enabled(!showDrawer)
+    .activeOffsetY([-20, 20]) // More strict, reduces conflict with list scroll
+    .onUpdate(event => {
+      if (!showDrawer && event.translationY < 0) {
+        // Swiping up from home: progress 0 -> 1
+        progress.value = Math.min(1, Math.abs(event.translationY) / 400);
+      }
+    })
+    .onEnd(event => {
+      if (!showDrawer) {
+        if (event.translationY < -100 || event.velocityY < -500) {
+          runOnJS(setShowDrawer)(true);
+        } else {
+          progress.value = withSpring(0, SPRING_CONFIG);
+        }
+      }
+    });
+
+  const homeBackgroundStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(progress.value, [0, 1], [1, 0], Extrapolate.CLAMP),
+  }));
+
+  const drawerBackgroundStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(progress.value, [0, 1], [0, 1], Extrapolate.CLAMP),
+  }));
+
+  const homeUiStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(progress.value, [0, 0.82], [1, 0], Extrapolate.CLAMP),
+  }));
 
   const loadApps = async () => {
-    // 1. Try to load saved dock apps first
     const saved = await AsyncStorage.getItem('dock_apps');
     if (saved) {
       setApps(JSON.parse(saved));
     } else {
-      // Fallback to default apps if nothing saved
       const defaultApps = await NativeModules.AppModule.getDefaultApps();
-      const sortedDefault = defaultApps.sort((a: any, b: any) => a.name.localeCompare(b.name));
+      const sortedDefault = defaultApps.sort((a: any, b: any) =>
+        a.name.localeCompare(b.name),
+      );
       setApps(sortedDefault);
-      // Save them initially so they stick
       await AsyncStorage.setItem('dock_apps', JSON.stringify(sortedDefault));
     }
 
     const installedApps = await getApps();
     setAllApps(installedApps);
-
-    // Hide splash screen once initial apps are loaded
     RNBootSplash.hide({ fade: true });
   };
 
@@ -197,70 +164,89 @@ export default function HomeScreen() {
     setShowDrawer(true);
   }, []);
 
-  const handleSelectApp = useCallback(async (newApp: any) => {
-    if (selectedSlot === null) {
-      openApp(newApp.package);
+  const handleSelectApp = useCallback(
+    async (newApp: any) => {
+      if (selectedSlot === null) {
+        openApp(newApp.package);
+        handleClose();
+        return;
+      }
+
+      const updated = [...apps];
+      updated[selectedSlot] = newApp;
+      setApps(updated);
+      await AsyncStorage.setItem('dock_apps', JSON.stringify(updated));
       handleClose();
-      return;
-    }
-
-    const updated = [...apps];
-    updated[selectedSlot] = newApp;
-
-    setApps(updated);
-    await AsyncStorage.setItem('dock_apps', JSON.stringify(updated));
-
-    handleClose();
-  }, [apps, selectedSlot, handleClose]);
+    },
+    [apps, selectedSlot, handleClose],
+  );
 
   return (
-    <View style={{ flex: 1 }}>
-      <ImageBackground
-        source={require('../assets/images/bg-image.webp')}
-        style={styles.container}
-        {...panResponder.panHandlers}
-      >
-        <TopHeader />
-        <View
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            position: 'absolute',
-            bottom: insets.bottom + 20,
-            width: '100%',
-          }}
+    <GestureDetector gesture={panGesture}>
+      <View style={{ flex: 1, backgroundColor: 'black' }}>
+        <Animated.View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, homeBackgroundStyle]}
         >
-          {apps.map((app: any, index: number) => (
-            <AppIcon
-              key={`${app.package}-${index}`}
-              app={app}
-              onLongPress={() => handleReplace(index)}
-              isEditing={selectedSlot === index}
-            />
-          ))}
-        </View>
-      </ImageBackground>
+          <ImageBackground
+            source={require('../assets/images/bg-image.webp')}
+            style={styles.container}
+          />
+        </Animated.View>
 
-      <AppDrawer
-        apps={allApps}
-        showDrawer={showDrawer}
-        translateY={translateY}
-        onClose={handleClose}
-        setIsAtTop={setIsDrawerAtTop}
-        panHandlers={panResponder.panHandlers}
-        onSelectApp={handleSelectApp}
-        title={
-          selectedSlot !== null
-            ? `Select Replacement for ${apps[selectedSlot]?.name}`
-            : undefined
-        }
-      />
-    </View>
+        <Animated.View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, drawerBackgroundStyle]}
+        >
+          <ImageBackground
+            source={require('../assets/images/drawer-bg.webp')}
+            style={styles.container}
+          />
+        </Animated.View>
+
+        <Animated.View style={[styles.homeUiLayer, homeUiStyle]}>
+          <TopHeader />
+          <View style={[styles.dockRow, { bottom: insets.bottom + 20 }]}>
+            {apps.map((app: any, index: number) => (
+              <AppIcon
+                key={`${app.package}-${index}`}
+                app={app}
+                onLongPress={() => handleReplace(index)}
+                isEditing={selectedSlot === index}
+              />
+            ))}
+          </View>
+        </Animated.View>
+
+        <AppDrawer
+          apps={allApps}
+          showDrawer={showDrawer}
+          progress={progress}
+          onClose={handleClose}
+          onSelectApp={handleSelectApp}
+          title={
+            selectedSlot !== null
+              ? `Select Replacement for ${apps[selectedSlot]?.name}`
+              : undefined
+          }
+        />
+      </View>
+    </GestureDetector>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  homeUiLayer: {
+    flex: 1,
+  },
+  dockRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    position: 'absolute',
+    width: '100%',
+    paddingHorizontal: 10,
   },
 });

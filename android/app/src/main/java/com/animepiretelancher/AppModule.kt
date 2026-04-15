@@ -25,28 +25,48 @@ class AppModule(reactContext: ReactApplicationContext) :
 
     override fun getName() = "AppModule"
 
-    private fun getIconBase64(drawable: Drawable): String {
-        val bitmap = if (drawable is BitmapDrawable) {
+    private val iconCache = mutableMapOf<String, String>()
+    private val iconTargetSizePx = 96
+
+    private fun drawableToBitmap(drawable: Drawable): Bitmap {
+        return if (drawable is BitmapDrawable && drawable.bitmap != null) {
             drawable.bitmap
         } else {
             val width = drawable.intrinsicWidth.takeIf { it > 0 } ?: 100
             val height = drawable.intrinsicHeight.takeIf { it > 0 } ?: 100
 
-            val bmp = Bitmap.createBitmap(
+            val bitmap = Bitmap.createBitmap(
                 width,
                 height,
                 Bitmap.Config.ARGB_8888
             )
 
-            val canvas = Canvas(bmp)
+            val canvas = Canvas(bitmap)
             drawable.setBounds(0, 0, canvas.width, canvas.height)
             drawable.draw(canvas)
 
-            bmp
+            bitmap
         }
+    }
+
+    private fun scaleBitmap(bitmap: Bitmap, targetSize: Int): Bitmap {
+        val width = bitmap.width
+        val height = bitmap.height
+        if (width <= targetSize && height <= targetSize) {
+            return bitmap
+        }
+        val scale = minOf(targetSize.toFloat() / width, targetSize.toFloat() / height)
+        val scaledWidth = (width * scale).toInt().coerceAtLeast(1)
+        val scaledHeight = (height * scale).toInt().coerceAtLeast(1)
+        return Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, true)
+    }
+
+    private fun getIconBase64(drawable: Drawable): String {
+        val originalBitmap = drawableToBitmap(drawable)
+        val scaledBitmap = scaleBitmap(originalBitmap, iconTargetSizePx)
 
         val stream = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+        scaledBitmap.compress(Bitmap.CompressFormat.WEBP_LOSSY, 75, stream)
         val byteArray = stream.toByteArray()
 
         return Base64.encodeToString(
@@ -62,10 +82,14 @@ class AppModule(reactContext: ReactApplicationContext) :
             val map = Arguments.createMap()
             map.putString("name", appInfo.loadLabel(pm).toString())
             map.putString("package", packageName)
-            
-            val drawable = appInfo.loadIcon(pm)
-            val base64Icon = getIconBase64(drawable)
-            map.putString("icon", "data:image/png;base64,$base64Icon")
+
+            val base64Icon = iconCache[packageName] ?: run {
+                val drawable = appInfo.loadIcon(pm)
+                val encodedIcon = getIconBase64(drawable)
+                iconCache[packageName] = encodedIcon
+                encodedIcon
+            }
+            map.putString("icon", "data:image/webp;base64,$base64Icon")
             
             map
         } catch (e: Exception) {

@@ -1,12 +1,20 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import {
   TouchableOpacity,
   ImageBackground,
   Image,
   Text,
   View,
-  Animated,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withRepeat,
+  withSequence,
+  withTiming,
+  cancelAnimation,
+} from 'react-native-reanimated';
 import { openApp } from '../services/appService';
 
 interface AppIconProps {
@@ -22,43 +30,41 @@ const AppIcon = React.memo(({
   onPress,
   isEditing,
 }: AppIconProps) => {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const wiggleAnim = useRef(new Animated.Value(0)).current;
+  const scale = useSharedValue(1);
+  const rotation = useSharedValue(0);
 
   useEffect(() => {
     if (isEditing) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(wiggleAnim, {
-            toValue: 2,
-            duration: 100,
-            useNativeDriver: true,
-          }),
-          Animated.timing(wiggleAnim, {
-            toValue: -2,
-            duration: 100,
-            useNativeDriver: true,
-          }),
-        ]),
-      ).start();
+      rotation.value = withRepeat(
+        withSequence(
+          withTiming(-1, { duration: 100 }),
+          withTiming(1, { duration: 100 })
+        ),
+        -1,
+        true
+      );
     } else {
-      wiggleAnim.setValue(0);
+      cancelAnimation(rotation);
+      rotation.value = 0;
     }
-  }, [isEditing, wiggleAnim]);
+  }, [isEditing, rotation]);
 
-  const handlePressIn = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1.1,
-      useNativeDriver: true,
-    }).start();
-  };
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        { scale: scale.value },
+        { rotate: `${rotation.value}deg` },
+      ],
+    };
+  });
 
-  const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-    }).start();
-  };
+  const handlePressIn = useCallback(() => {
+    scale.value = withSpring(1.05, { damping: 10, stiffness: 300 });
+  }, [scale]);
+
+  const handlePressOut = useCallback(() => {
+    scale.value = withSpring(1, { damping: 10, stiffness: 300 });
+  }, [scale]);
 
   const handlePress = () => {
     if (onPress) {
@@ -69,19 +75,7 @@ const AppIcon = React.memo(({
   };
 
   return (
-    <Animated.View
-      style={{
-        transform: [
-          { scale: scaleAnim },
-          {
-            rotate: wiggleAnim.interpolate({
-              inputRange: [-2, 2],
-              outputRange: ['-1deg', '1deg'],
-            }),
-          },
-        ],
-      }}
-    >
+    <Animated.View style={animatedStyle}>
       <TouchableOpacity
         onPress={handlePress}
         onLongPress={onLongPress}
