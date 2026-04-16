@@ -7,6 +7,7 @@ import {
   Alert,
   AppState,
   InteractionManager,
+  DeviceEventEmitter,
 } from 'react-native';
 import { getApps, setWallpaper, openApp } from '../services/appService';
 import AppIcon from '../components/AppIconComponent';
@@ -43,43 +44,25 @@ export default function HomeScreen() {
   // Normalized progress: 0 = home, 1 = drawer fully open
   const progress = useSharedValue(0);
 
-  useEffect(() => {
-    const init = async () => {
-      try {
-        await loadApps();
+  const loadApps = useCallback(async () => {
+    const saved = await AsyncStorage.getItem('dock_apps');
+    if (saved) {
+      setApps(JSON.parse(saved));
+    } else {
+      const defaultApps = await NativeModules.AppModule.getDefaultApps();
+      const sortedDefault = defaultApps.sort((a: any, b: any) =>
+        a.name.localeCompare(b.name),
+      );
+      setApps(sortedDefault);
+      await AsyncStorage.setItem('dock_apps', JSON.stringify(sortedDefault));
+    }
 
-        InteractionManager.runAfterInteractions(() => {
-          setWallpaper().catch(e => {
-            console.error('Failed to set wallpaper:', e);
-          });
-          checkDefaultLauncher().catch(e => {
-            console.error('Failed to check default launcher:', e);
-          });
-        });
-      } catch (e) {
-        console.error('Initialization failed:', e);
-      }
-    };
-    init();
+    const installedApps = await getApps();
+    setAllApps(installedApps);
+    RNBootSplash.hide({ fade: true });
   }, []);
 
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', nextAppState => {
-      if (nextAppState === 'active') {
-        const now = Date.now();
-        if (now - lastAppRefreshTs.current < 1500) {
-          return;
-        }
-        lastAppRefreshTs.current = now;
-        getApps().then(installedApps => {
-          setAllApps(installedApps);
-        });
-      }
-    });
-    return () => subscription.remove();
-  }, []);
-
-  const checkDefaultLauncher = async () => {
+  const checkDefaultLauncher = useCallback(async () => {
     try {
       const isDefault = await NativeModules.AppModule.isDefaultLauncher();
       if (!isDefault) {
@@ -98,12 +81,78 @@ export default function HomeScreen() {
     } catch (e) {
       console.error('Failed to check default launcher:', e);
     }
-  };
+  }, []);
 
   const handleClose = useCallback(() => {
     setShowDrawer(false);
     setSelectedSlot(null);
   }, []);
+
+  const handleReplace = useCallback((index: number) => {
+    setSelectedSlot(index);
+    setShowDrawer(true);
+  }, []);
+
+  const handleSelectApp = useCallback(
+    async (newApp: any) => {
+      if (selectedSlot === null) {
+        // Just launch the app and keep the drawer state, 
+        // so returning via Back returns to the drawer.
+        openApp(newApp.package);
+        return;
+      }
+
+      const updated = [...apps];
+      updated[selectedSlot] = newApp;
+      setApps(updated);
+      await AsyncStorage.setItem('dock_apps', JSON.stringify(updated));
+      handleClose();
+    },
+    [apps, selectedSlot, handleClose],
+  );
+
+  useEffect(() => {
+    const init = async () => {
+      try {
+        await loadApps();
+
+        InteractionManager.runAfterInteractions(() => {
+          setWallpaper().catch(e => {
+            console.error('Failed to set wallpaper:', e);
+          });
+          checkDefaultLauncher().catch(e => {
+            console.error('Failed to check default launcher:', e);
+          });
+        });
+      } catch (e) {
+        console.error('Initialization failed:', e);
+      }
+    };
+    init();
+  }, [loadApps, checkDefaultLauncher]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (nextAppState === 'active') {
+        const now = Date.now();
+        if (now - lastAppRefreshTs.current < 1500) {
+          return;
+        }
+        lastAppRefreshTs.current = now;
+        getApps().then(installedApps => {
+          setAllApps(installedApps);
+        });
+      }
+    });
+    return () => subscription.remove();
+  }, []);
+
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('onHomePressed', () => {
+      handleClose();
+    });
+    return () => subscription.remove();
+  }, [handleClose]);
 
   // Sync state to animation
   useEffect(() => {
@@ -141,45 +190,6 @@ export default function HomeScreen() {
     opacity: interpolate(progress.value, [0, 0.82], [1, 0], Extrapolate.CLAMP),
   }));
 
-  const loadApps = async () => {
-    const saved = await AsyncStorage.getItem('dock_apps');
-    if (saved) {
-      setApps(JSON.parse(saved));
-    } else {
-      const defaultApps = await NativeModules.AppModule.getDefaultApps();
-      const sortedDefault = defaultApps.sort((a: any, b: any) =>
-        a.name.localeCompare(b.name),
-      );
-      setApps(sortedDefault);
-      await AsyncStorage.setItem('dock_apps', JSON.stringify(sortedDefault));
-    }
-
-    const installedApps = await getApps();
-    setAllApps(installedApps);
-    RNBootSplash.hide({ fade: true });
-  };
-
-  const handleReplace = useCallback((index: number) => {
-    setSelectedSlot(index);
-    setShowDrawer(true);
-  }, []);
-
-  const handleSelectApp = useCallback(
-    async (newApp: any) => {
-      if (selectedSlot === null) {
-        openApp(newApp.package);
-        handleClose();
-        return;
-      }
-
-      const updated = [...apps];
-      updated[selectedSlot] = newApp;
-      setApps(updated);
-      await AsyncStorage.setItem('dock_apps', JSON.stringify(updated));
-      handleClose();
-    },
-    [apps, selectedSlot, handleClose],
-  );
 
   return (
     <GestureDetector gesture={panGesture}>
