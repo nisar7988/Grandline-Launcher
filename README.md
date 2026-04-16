@@ -4,11 +4,11 @@ A premium, **One Piece** themed Android launcher built with **React Native**. Ex
 
 ## 📸 Screenshots
 
-|                    Home Screen                     |                     App Drawer                     |
-| :------------------------------------------------: | :------------------------------------------------: |
-| ![Lock Screen](assets/screenshots/screenshot1.png) | ![Home Screen](assets/screenshots/screenshot2.png) |
-|                 **Customization**                  |                 **Biometric Lock**                 |
-| ![App Drawer](assets/screenshots/screenshot3.png)  |  ![App Menu](assets/screenshots/screenshot4.png)   |
+|                    Home Screen                    |                    App Drawer                     |
+| :-----------------------------------------------: | :-----------------------------------------------: |
+| ![Lock Screen](assets/screenshots/lockscreen.png) | ![Home Screen](assets/screenshots/homescreen.png) |
+|                 **Customization**                 |                **Biometric Lock**                 |
+|  ![App Drawer](assets/screenshots/appdrawer.png)  |    ![App Menu](assets/screenshots/appmenu.png)    |
 
 ## 🏴‍☠️ Features
 
@@ -30,7 +30,7 @@ A premium, **One Piece** themed Android launcher built with **React Native**. Ex
 
 You can download the latest APK from the following link:
 
-> [!TIP] > **[Download GrandLine Launcher APK](https://drive.google.com/your-apk-link)** > _(Note: Please replace this link with your actual Google Drive download link.)_
+> [!TIP] > **[Download GrandLine Launcher APK](https://drive.google.com/file/d/1gD0aMDMOkNe9rySiHC7RzWlBd1Wl-PaK/view?usp=drive_link)**
 
 ### 🛠 Installation
 
