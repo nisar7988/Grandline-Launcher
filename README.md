@@ -1,97 +1,87 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# ⚓️ GrandLine Launcher
 
-# Getting Started
+A premium, **One Piece** themed Android launcher built with **React Native**. Experience the journey of the Straw Hat crew right from your home screen with smooth animations, glassmorphism aesthetics, and a pirate-inspired interface.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## 📸 Screenshots
 
-## Step 1: Start Metro
+|                    Home Screen                     |                     App Drawer                     |
+| :------------------------------------------------: | :------------------------------------------------: |
+| ![Lock Screen](assets/screenshots/screenshot1.png) | ![Home Screen](assets/screenshots/screenshot2.png) |
+|                 **Customization**                  |                 **Biometric Lock**                 |
+| ![App Drawer](assets/screenshots/screenshot3.png)  |  ![App Menu](assets/screenshots/screenshot4.png)   |
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+## 🏴‍☠️ Features
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+- **One Piece Theme**: Gorgeous anime-inspired wallpapers and UI elements.
+- **Glassmorphism Dock**: A stunning, semi-transparent dock for your favorite apps with subtle highlights and shadows.
+- **Gesture-Based App Drawer**: Swipe up from the dock to reveal all your installed applications with a smooth, vertical scroll.
+- **Customizable Dock**: Long-press any app icon in the dock to replace it with another app from your drawer.
+- **Snappy Animations**: Powered by `react-native-reanimated` for a flagship-level fluid experience.
+- **Biometric Support**: Secure your apps with integrated fingerprint authentication.
 
-```sh
-# Using npm
-npm start
+## 🚀 Getting Started
 
-# OR using Yarn
-yarn start
-```
+### Prerequisites
 
-## Step 2: Build and run your app
+- Android Device (Version 11+)
+- APK file (see Download section)
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
+### 📥 Download
 
-### Android
+You can download the latest APK from the following link:
 
-```sh
-# Using npm
-npm run android
+> [!TIP] > **[Download GrandLine Launcher APK](https://drive.google.com/your-apk-link)** > _(Note: Please replace this link with your actual Google Drive download link.)_
 
-# OR using Yarn
-yarn android
-```
+### 🛠 Installation
 
-### iOS
+1.  Download the APK to your Android device.
+2.  Enable "Install from Unknown Sources" in your device settings.
+3.  Open the APK and follow the installation prompts.
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+---
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+## ⚙️ How to Set as Default Launcher
 
-```sh
-bundle install
-```
+To enjoy the full GrandLine experience, you should set it as your default home application:
 
-Then, and every time you update your native dependencies, run:
+1.  Open the **GrandLine Launcher** app.
+2.  An alert should appear asking you to set it as default. Tap **"Set as Default"**.
+3.  In the Android system settings that open, select **"Home app"**.
+4.  Choose **"GrandLine Launcher"** from the list.
 
-```sh
-bundle exec pod install
-```
+**Manual Method:**
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
+- Go to **Settings** > **Apps** > **Default Apps** > **Home App**.
+- Select **GrandLine Launcher**.
 
-```sh
-# Using npm
-npm run ios
+---
 
-# OR using Yarn
-yarn ios
-```
+## 🗑 How to Remove or Revert
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+If you wish to go back to your original launcher or uninstall GrandLine:
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+1.  Go to **Settings** > **Apps** > **Default Apps** > **Home App**.
+2.  Select your device's original launcher (e.g., Pixel Launcher, Samsung Experience, etc.).
+3.  Once the default is changed, you can uninstall GrandLine Launcher like any other app:
+    - Go to **Settings** > **Apps** > **GrandLine Launcher**.
+    - Tap **Uninstall**.
 
-## Step 3: Modify your app
+---
 
-Now that you have successfully run the app, let's make changes!
+## 🛠 Tech Stack
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+- **React Native**: Core framework.
+- **Reanimated 4**: For high-performance animations.
+- **Gesture Handler**: For fluid swipe interactions.
+- **TypeScript**: For robust, type-safe code.
+- **Glassmorphism Layout**: Custom CSS-in-JS implementation.
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+---
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+## 🤝 Contributing
 
-## Congratulations! :tada:
+Contributions are welcome! If you have ideas for new features or improvements (especially more One Piece themed elements), feel free to open a PR.
 
-You've successfully run and modified your React Native App. :partying_face:
+---
 
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+_“I’m gonna be the King of the Pirates!” – Monkey D. Luffy_ 🍖
