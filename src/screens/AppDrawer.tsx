@@ -1,7 +1,12 @@
-import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import React, {
+  useState,
+  useMemo,
+  useEffect,
+  useRef,
+  useCallback,
+} from 'react';
 import {
   View,
-  FlatList,
   StyleSheet,
   TouchableWithoutFeedback,
   TextInput,
@@ -21,8 +26,11 @@ import Animated, {
   withSpring,
   runOnJS,
 } from 'react-native-reanimated';
-import { BlurView } from '@react-native-community/blur';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import {
+  Gesture,
+  GestureDetector,
+  FlatList,
+} from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface AppDrawerProps {
@@ -47,15 +55,14 @@ export default function AppDrawer({
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
-  const [activePage, setActivePage] = useState(0);
   const [contextMenuVisible, setContextMenuVisible] = useState(false);
   const [contextMenuApp, setContextMenuApp] = useState<any>(null);
-  const [contextMenuAnchor, setContextMenuAnchor] = useState<{ x: number, y: number } | null>(null);
+  const [contextMenuAnchor, setContextMenuAnchor] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
   const inputRef = useRef<TextInput>(null);
-  const horizontalListRef = useRef<FlatList<any[]>>(null);
-  const touchStartYRef = useRef<number | null>(null);
-  const swipeCloseTriggeredRef = useRef(false);
-  const APPS_PER_PAGE = 20;
+  const listRef = useRef<FlatList>(null);
 
   useEffect(() => {
     const keyboardHideListener = Keyboard.addListener('keyboardDidHide', () => {
@@ -72,27 +79,15 @@ export default function AppDrawer({
     return () => clearTimeout(timeout);
   }, [searchQuery]);
 
-  const sortedApps = useMemo(
-    () => [...apps].sort((a, b) => a.name.localeCompare(b.name)),
-    [apps],
-  );
-
   const filteredApps = useMemo(() => {
+    const sorted = [...apps].sort((a, b) => a.name.localeCompare(b.name));
     if (!debouncedQuery) {
-      return sortedApps;
+      return sorted;
     }
-    return sortedApps.filter(app =>
+    return sorted.filter(app =>
       app.name.toLowerCase().includes(debouncedQuery),
     );
-  }, [sortedApps, debouncedQuery]);
-
-  const pagedApps = useMemo(() => {
-    const pages: any[][] = [];
-    for (let i = 0; i < filteredApps.length; i += APPS_PER_PAGE) {
-      pages.push(filteredApps.slice(i, i + APPS_PER_PAGE));
-    }
-    return pages;
-  }, [filteredApps]);
+  }, [apps, debouncedQuery]);
 
   useEffect(() => {
     if (!showDrawer) {
@@ -100,7 +95,6 @@ export default function AppDrawer({
       setDebouncedQuery('');
       inputRef.current?.blur();
       Keyboard.dismiss();
-      setActivePage(0);
     }
   }, [showDrawer]);
 
@@ -108,25 +102,8 @@ export default function AppDrawer({
     if (!showDrawer) {
       return;
     }
-    setActivePage(0);
-    horizontalListRef.current?.scrollToOffset({ offset: 0, animated: false });
+    listRef.current?.scrollToOffset({ offset: 0, animated: false });
   }, [showDrawer]);
-
-  useEffect(() => {
-    if (!pagedApps.length) {
-      setActivePage(0);
-      return;
-    }
-
-    const clampedPage = Math.min(activePage, pagedApps.length - 1);
-    if (clampedPage !== activePage) {
-      setActivePage(clampedPage);
-      horizontalListRef.current?.scrollToOffset({
-        offset: clampedPage * screenWidth,
-        animated: false,
-      });
-    }
-  }, [pagedApps, activePage, screenWidth]);
 
   useEffect(() => {
     if (!showDrawer) return;
@@ -155,7 +132,14 @@ export default function AppDrawer({
     return {
       opacity: progress.value,
       transform: [
-        { translateY: interpolate(progress.value, [0, 1], [40, 0], Extrapolate.CLAMP) }
+        {
+          translateY: interpolate(
+            progress.value,
+            [0, 1],
+            [40, 0],
+            Extrapolate.CLAMP,
+          ),
+        },
       ],
     };
   });
@@ -171,16 +155,17 @@ export default function AppDrawer({
     return {
       opacity: interpolate(progress.value, [0.4, 1], [0, 1], Extrapolate.CLAMP),
       transform: [
-        { translateY: interpolate(progress.value, [0.4, 1], [15, 0], Extrapolate.CLAMP) }
+        {
+          translateY: interpolate(
+            progress.value,
+            [0.4, 1],
+            [15, 0],
+            Extrapolate.CLAMP,
+          ),
+        },
       ],
     };
   });
-
-  const handlePageScroll = useCallback((event: any) => {
-    const offsetX = event.nativeEvent.contentOffset.x;
-    const page = Math.round(offsetX / screenWidth);
-    setActivePage(Math.max(0, page));
-  }, [screenWidth]);
 
   const closeGesture = Gesture.Pan()
     .enabled(showDrawer)
@@ -192,7 +177,7 @@ export default function AppDrawer({
       }
     })
     .onEnd(event => {
-      if (event.translationY > 30 || event.velocityY > 400) {
+      if (event.translationY > 40 || event.velocityY > 500) {
         runOnJS(onClose)();
       } else {
         progress.value = withSpring(1);
@@ -206,59 +191,18 @@ export default function AppDrawer({
     setContextMenuVisible(true);
   }, []);
 
-  const renderItem = useCallback(({ item }: { item: any }) => (
-   <View style={{ marginVertical: 10, marginHorizontal: 3 }}>  
-    <AppIcon
-      app={item}
-      onPress={() => onSelectApp && onSelectApp(item)}
-      onLongPress={(e) => onLongPressIcon(e, item)}
-    />
-   </View>
-  ), [onSelectApp, onLongPressIcon]);
+  const renderItem = useCallback(
+    ({ item }: { item: any }) => (
+      <AppIcon
+        app={item}
+        onPress={() => onSelectApp && onSelectApp(item)}
+        onLongPress={e => onLongPressIcon(e, item)}
+      />
+    ),
+    [onSelectApp, onLongPressIcon],
+  );
 
   const keyExtractor = useCallback((item: any) => item.package, []);
-
-  const renderPage = useCallback(({ item }: { item: any[] }) => (
-    <View style={[styles.page, { width: screenWidth }]}>
-      <FlatList
-        data={item}
-        numColumns={4}
-        keyExtractor={keyExtractor}
-        renderItem={renderItem}
-        contentContainerStyle={styles.pageGrid}
-        scrollEnabled={false}
-        keyboardShouldPersistTaps="always"
-        removeClippedSubviews={false}
-      />
-    </View>
-  ), [screenWidth, keyExtractor, renderItem]);
-
-  const pageKeyExtractor = useCallback((_: any[], index: number) => `page-${index}`, []);
-
-  const resetSwipeFallbackState = useCallback(() => {
-    touchStartYRef.current = null;
-    swipeCloseTriggeredRef.current = false;
-  }, []);
-
-  const handleSwipeFallbackMove = useCallback(
-    (pageY: number) => {
-      if (touchStartYRef.current == null) {
-        touchStartYRef.current = pageY;
-        return;
-      }
-
-      if (swipeCloseTriggeredRef.current) {
-        return;
-      }
-
-      const deltaY = pageY - touchStartYRef.current;
-      if (deltaY > 24) {
-        swipeCloseTriggeredRef.current = true;
-        onClose();
-      }
-    },
-    [onClose],
-  );
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
@@ -272,97 +216,49 @@ export default function AppDrawer({
         pointerEvents={showDrawer ? 'auto' : 'none'}
         style={[styles.container, { paddingTop: insets.top }, animatedStyle]}
       >
-        <GestureDetector gesture={closeGesture}>
-          <View style={styles.drawerContent}>
-            {Platform.OS === 'ios' ? (
-              <BlurView
-                style={StyleSheet.absoluteFill}
-                blurType="dark"
-                blurAmount={18}
-                reducedTransparencyFallbackColor="rgba(20,20,20,0.55)"
-              />
-            ) : (
-              <View style={styles.androidFrostedFallback} />
-            )}
-            <View style={styles.gestureArea}>
-              <View style={styles.handle}>
-                <View style={styles.handlePill} />
-              </View>
-              {title && (
-                <Text style={styles.titleText}>
-                  {title}
-                </Text>
-              )}
+        <View style={styles.drawerContent}>
+          <View style={styles.androidFrostedFallback} />
 
-              <Animated.View style={[styles.searchBar, searchBarStyle]}>
-                <TextInput
-                  ref={inputRef}
-                  placeholder="Search Grand Line..."
-                  placeholderTextColor="rgba(255, 255, 255, 0.4)"
-                  style={styles.searchBarInput}
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  onFocus={() => setIsFocused(true)}
-                  onBlur={() => setIsFocused(false)}
-                  clearButtonMode="while-editing"
-                />
-              </Animated.View>
-
-              <View
-                style={styles.horizontalPager}
-                onTouchStart={event => {
-                  touchStartYRef.current = event.nativeEvent.pageY;
-                  swipeCloseTriggeredRef.current = false;
-                }}
-                onTouchMove={event => {
-                  handleSwipeFallbackMove(event.nativeEvent.pageY);
-                }}
-                onTouchEnd={resetSwipeFallbackState}
-                onTouchCancel={resetSwipeFallbackState}
-              >
-                <FlatList
-                  ref={horizontalListRef}
-                  data={pagedApps}
-                  keyExtractor={pageKeyExtractor}
-                  renderItem={renderPage}
-                  style={styles.horizontalPager}
-                  horizontal
-                  pagingEnabled
-                  onScroll={handlePageScroll}
-                  onScrollBeginDrag={() => Keyboard.dismiss()}
-                  scrollEventThrottle={16}
-                  nestedScrollEnabled={true}
-                  bounces={false}
-                  keyboardShouldPersistTaps="always"
-                  initialNumToRender={1}
-                  maxToRenderPerBatch={2}
-                  windowSize={3}
-                  removeClippedSubviews={true}
-                  showsHorizontalScrollIndicator={false}
-                  getItemLayout={(_, index) => ({
-                    length: screenWidth,
-                    offset: screenWidth * index,
-                    index,
-                  })}
-                />
-              </View>
-
-              {pagedApps.length > 1 && (
-                <View style={[styles.pageIndicatorContainer, { paddingBottom: insets.bottom + 16 }]}>
-                  {pagedApps.map((_, index) => (
-                    <View
-                      key={`indicator-${index}`}
-                      style={[
-                        styles.pageDot,
-                        index === activePage && styles.pageDotActive,
-                      ]}
-                    />
-                  ))}
+          <View style={styles.gestureArea}>
+            <GestureDetector gesture={closeGesture}>
+              <View style={styles.headerArea}>
+                <View style={styles.handle}>
+                  <View style={styles.handlePill} />
                 </View>
-              )}
-            </View>
+                {title && <Text style={styles.titleText}>{title}</Text>}
+
+                <Animated.View style={[styles.searchBar, searchBarStyle]}>
+                  <TextInput
+                    ref={inputRef}
+                    placeholder="Search Grand Line..."
+                    placeholderTextColor="rgba(255, 255, 255, 0.4)"
+                    style={styles.searchBarInput}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setIsFocused(false)}
+                    clearButtonMode="while-editing"
+                  />
+                </Animated.View>
+              </View>
+            </GestureDetector>
+
+            <FlatList
+              style={styles.verticalList}
+              numColumns={4}
+              data={filteredApps}
+              keyExtractor={keyExtractor}
+              renderItem={renderItem}
+              onScrollBeginDrag={() => Keyboard.dismiss()}
+              scrollEventThrottle={16}
+              nestedScrollEnabled={true}
+              bounces={false}
+              keyboardShouldPersistTaps="always"
+              removeClippedSubviews={false}
+              showsVerticalScrollIndicator={false}
+            />
           </View>
-        </GestureDetector>
+        </View>
       </Animated.View>
 
       <ContextMenu
@@ -386,11 +282,17 @@ const styles = StyleSheet.create({
   },
   drawerContent: {
     flex: 1,
-
     paddingTop: 8,
   },
   gestureArea: {
     flex: 1,
+
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  headerArea: {
+    width: '100%',
+    paddingBottom: 10,
   },
   androidFrostedFallback: {
     ...StyleSheet.absoluteFill,
@@ -418,8 +320,8 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   searchBar: {
+    marginVertical: 10,
     marginHorizontal: 24,
-    marginBottom: 20,
   },
   searchBarInput: {
     height: 52,
@@ -431,29 +333,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.04)',
   },
-  page: {
+  verticalList: {
     flex: 1,
-  },
-  horizontalPager: {
-    flex: 1,
-  },
-  pageGrid: {
-    paddingBottom: 40,
-  },
-  pageIndicatorContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-  },
-  pageDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.28)',
-  },
-  pageDotActive: {
-    width: 18,
-    backgroundColor: 'rgba(255,255,255,0.9)',
   },
 });

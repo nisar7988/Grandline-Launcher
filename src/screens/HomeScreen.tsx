@@ -39,7 +39,7 @@ export default function HomeScreen() {
   const [showDrawer, setShowDrawer] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const lastAppRefreshTs = React.useRef(0);
-  
+
   // Normalized progress: 0 = home, 1 = drawer fully open
   const progress = useSharedValue(0);
 
@@ -112,7 +112,7 @@ export default function HomeScreen() {
 
   const panGesture = Gesture.Pan()
     .enabled(!showDrawer)
-    .activeOffsetY([-20, 20]) // More strict, reduces conflict with list scroll
+    .activeOffsetY([-45, 40]) // Even stricter to ensure zero overlap with icon touches
     .onUpdate(event => {
       if (!showDrawer && event.translationY < 0) {
         // Swiping up from home: progress 0 -> 1
@@ -206,15 +206,21 @@ export default function HomeScreen() {
 
         <Animated.View style={[styles.homeUiLayer, homeUiStyle]}>
           <TopHeader />
-          <View style={[styles.dockRow, { bottom: insets.bottom + 20 }]}>
-            {apps.map((app: any, index: number) => (
-              <AppIcon
-                key={`${app.package}-${index}`}
-                app={app}
-                onLongPress={() => handleReplace(index)}
-                isEditing={selectedSlot === index}
-              />
-            ))}
+          <View style={[styles.dockWrapper, { bottom: insets.bottom + 20 }]}>
+            <View style={styles.dockGlass}>
+              <View style={styles.topHighlight} />
+
+              <View style={styles.innerGlow} />
+
+              {apps.map((app: any, index: number) => (
+                <AppIcon
+                  key={`${app.package}-${index}`}
+                  app={app}
+                  onLongPress={() => handleReplace(index)}
+                  isEditing={selectedSlot === index}
+                />
+              ))}
+            </View>
           </View>
         </Animated.View>
 
@@ -239,14 +245,84 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  dockWrapper: {
+    position: 'absolute',
+    width: '100%',
+    alignItems: 'center', // center dock
+  },
+
+  dockBlur: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 30, // pill shape
+
+    // glass effect
+    backgroundColor: 'rgba(255,255,255,0.08)',
+
+    // border glow
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+
+    // shadow (Android + iOS)
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+
   homeUiLayer: {
     flex: 1,
   },
-  dockRow: {
+
+  dockGlass: {
+    width: '96%', // floating look
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    justifyContent: 'center',
+
+    paddingVertical: 12,
+
+    borderRadius: 30,
+
+    // 🔥 main glass color
+    backgroundColor: 'rgba(255,255,255,0.08)',
+
+    // 🔥 border for glass edge
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+
+    overflow: 'hidden',
+
+    // 🔥 shadow = depth
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 12,
+  },
+
+  innerGlow: {
     position: 'absolute',
-    width: '100%',
-    paddingHorizontal: 10,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+
+  // 🔥 top light reflection (THIS makes it feel real)
+  topHighlight: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '40%',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    opacity: 0.6,
   },
 });

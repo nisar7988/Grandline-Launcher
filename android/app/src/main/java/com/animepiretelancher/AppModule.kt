@@ -209,12 +209,54 @@ class AppModule(reactContext: ReactApplicationContext) :
 
     @ReactMethod
     fun openApp(packageName: String) {
-        val intent = reactApplicationContext.packageManager
-            .getLaunchIntentForPackage(packageName)
+        val pm = reactApplicationContext.packageManager
+        
+        try {
+            // 0. Handle Samsung Gallery Specifically
+            if (packageName == "com.sec.android.gallery3d") {
+                val intent = Intent(Intent.ACTION_VIEW)
+                intent.type = "image/*"
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                reactApplicationContext.startActivity(intent)
+                return
+            }
 
-        intent?.let {
-            it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            reactApplicationContext.startActivity(it)
+            // 1. Check if it's a Dialer package
+            val telecomManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                reactApplicationContext.getSystemService(Context.TELECOM_SERVICE) as TelecomManager
+            } else null
+            
+            val isDialer = telecomManager?.defaultDialerPackage == packageName
+
+            if (isDialer) {
+                // For Dialer, ALWAYS use the generic ACTION_DIAL intent. 
+                // Do NOT setPackage(packageName) as it triggers the security denial on Samsung.
+                val intent = Intent(Intent.ACTION_DIAL)
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                reactApplicationContext.startActivity(intent)
+                return
+            }
+
+            // 2. Try standard launch intent for other apps
+            val launchIntent = pm.getLaunchIntentForPackage(packageName)
+            if (launchIntent != null) {
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                reactApplicationContext.startActivity(launchIntent)
+            } else {
+                // 3. Fallback: If no launch intent, try a main category launch
+                val fallbackIntent = pm.getLeanbackLaunchIntentForPackage(packageName) 
+                    ?: Intent(Intent.ACTION_MAIN).apply {
+                        addCategory(Intent.CATEGORY_LAUNCHER)
+                        setPackage(packageName)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                reactApplicationContext.startActivity(fallbackIntent)
+            }
+        } catch (e: Exception) {
+            // Last resort: Just try to open the dialer anyway if anything crashes
+            val intent = Intent(Intent.ACTION_DIAL)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            reactApplicationContext.startActivity(intent)
         }
     }
 

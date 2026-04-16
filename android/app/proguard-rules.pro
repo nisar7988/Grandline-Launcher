@@ -8,3 +8,13 @@
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
 # Add any project specific keep options here:
+# Reanimated
+-keep class com.swmansion.reanimated.** { *; }
+-keep class com.facebook.react.turbomodule.** { *; }
+
+# Gesture Handler
+-keep class com.swmansion.gesturehandler.** { *; }
+
+# React Native
+-keep class com.facebook.react.** { *; }
+-keep class com.facebook.jni.** { *; }
